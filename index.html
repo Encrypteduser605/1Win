@@ -1,80 +1,606 @@
-﻿<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Aviator Multiplier Simulation</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    h1 {
-      color: #f04;
-    }
-    #multiplier {
-      font-size: 4em;
-      margin: 20px;
-      min-width: 150px;
-      text-align: center;
-    }
-    button {
-      padding: 10px 25px;
-      font-size: 1.2em;
-      cursor: pointer;
-      background: #f04;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background: #d03;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Multiplier Simulation — Educational Demo</title>
+<meta name="description" content="Educational simulation of a multiplier-style game (virtual points only). Explore probability, crash distribution, and expected value." />
+<style>
+  :root{
+    --bg:#0f1720;
+    --card:#0b1320;
+    --accent:#06b6d4;
+    --muted:#93a3b6;
+    --success:#16a34a;
+    --danger:#ef4444;
+    --glass: rgba(255,255,255,0.04);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background: linear-gradient(180deg, #071021 0%, #081427 60%);
+    color:#e6eef6;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding:24px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+  }
+  .container{
+    width:100%;
+    max-width:1100px;
+    display:grid;
+    grid-template-columns: 480px 1fr;
+    gap:20px;
+  }
+
+  header{
+    grid-column: 1 / -1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:4px;
+  }
+  header h1{font-size:18px;margin:0}
+  header p{margin:0;color:var(--muted);font-size:13px}
+
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.04);
+    padding:16px;
+    border-radius:12px;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  }
+
+  /* Left column */
+  .game{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .display{
+    height:180px;
+    border-radius:10px;
+    background:linear-gradient(180deg, rgba(6,6,15,0.5), rgba(6,6,15,0.1));
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    padding:16px;
+    text-align:center;
+  }
+  .multiplier{
+    font-weight:700;
+    color:var(--accent);
+    font-size:42px;
+    letter-spacing:0.6px;
+  }
+  .status{color:var(--muted);font-size:13px;margin-top:6px}
+
+  .controls{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .controls .col{display:flex;flex-direction:column;gap:6px}
+  input[type="number"], input[type="text"], select{
+    padding:8px 10px;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:inherit;
+  }
+  .btn{
+    background:var(--accent);color:#022;border:none;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;
+  }
+  .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  .btn.danger{background:var(--danger);color:white}
+
+  .small{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  /* Right column */
+  .right{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .chart-wrap{
+    height:300px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  canvas{width:100%;height:100%;background:linear-gradient(180deg, rgba(3,7,18,0.6), rgba(6,10,20,0.5));border-radius:8px;border:1px solid rgba(255,255,255,0.03);}
+
+  .stats{
+    display:flex;
+    gap:8px;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .stat{
+    flex:1;
+    padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+    text-align:center;
+  }
+  .stat h3{margin:0;font-size:13px;color:var(--muted)}
+  .stat p{margin:4px 0 0;font-weight:700;font-size:16px}
+
+  .log{max-height:160px;overflow:auto;padding:8px;border-radius:8px;background:rgba(0,0,0,0.15);font-size:13px;color:var(--muted)}
+  .log .entry{padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.02)}
+  .explain{font-size:13px;color:var(--muted);line-height:1.4}
+
+  footer{grid-column:1 / -1;margin-top:10px;text-align:center;color:var(--muted);font-size:13px}
+  @media (max-width:980px){
+    .container{grid-template-columns: 1fr; padding-bottom:40px}
+  }
+</style>
 </head>
 <body>
-  <h1>Multiplier Simulator</h1>
-  <div id="multiplier">1.00x</div>
-  <button id="startBtn">Start Simulation</button>
+  <div class="container" role="main">
+    <header>
+      <div>
+        <h1>Multiplier Simulation — Educational Demo</h1>
+        <p>Virtual points only · Not gambling · Designed to teach probability & expected value</p>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700">Instructor Mode</div>
+        <div style="color:var(--muted);font-size:13px">Round-based probability exploration</div>
+      </div>
+    </header>
 
-  <script>
-    let multiplier = 1.0;
-    let interval = null;
+    <!-- Left column: game / controls -->
+    <section class="card game" aria-labelledby="game-title">
+      <div id="game-title" style="display:none">Simulation</div>
 
-    const multiplierDisplay = document.getElementById('multiplier');
-    const startBtn = document.getElementById('startBtn');
+      <div class="display" role="status" aria-live="polite">
+        <div class="multiplier" id="multiplier">— x</div>
+        <div class="status" id="roundStatus">Press Start to run a round</div>
+      </div>
 
-    function startSimulation() {
-      if (interval) clearInterval(interval);
-      multiplier = 1.0;
-      multiplierDisplay.textContent = multiplier.toFixed(2) + "x";
-      startBtn.disabled = true;
-      startBtn.textContent = "Running...";
+      <div class="controls" aria-hidden="false">
+        <div class="col" style="flex:1">
+          <label for="bet">Bet (virtual points)</label>
+          <input id="bet" type="number" min="1" step="1" value="100" />
+        </div>
 
-      interval = setInterval(() => {
-        multiplier += 0.05 + Math.random() * 0.1;
-        multiplierDisplay.textContent = multiplier.toFixed(2) + "x";
+        <div class="col" style="width:150px">
+          <label for="auto">Autocashout (x)</label>
+          <input id="auto" type="number" min="1" step="0.1" value="2.0" />
+        </div>
 
-        if (Math.random() < 0.02) {  // ~2% chance to end each tick
-          clearInterval(interval);
-          multiplierDisplay.textContent += " 💥";
-          startBtn.disabled = false;
-          startBtn.textContent = "Start Simulation";
-        }
-      }, 100);
+        <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
+          <button id="startBtn" class="btn">Start Round</button>
+          <button id="cashoutBtn" class="btn secondary" disabled>Cashout</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+        <div class="small">
+          <div>Balance: <strong id="balance">1000</strong></div>
+          <div>Round: <strong id="roundNum">0</strong></div>
+          <div>Last crash: <strong id="lastCrash">—</strong></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="resetBtn" class="btn secondary">Reset</button>
+          <button id="seedBtn" class="btn secondary">Randomize Seed</button>
+        </div>
+      </div>
+
+      <div style="margin-top:8px" class="explain" id="explain">
+        <strong>How this demo works (educational):</strong>
+        <ul>
+          <li>This is a <em>simulation</em> of a multiplier process that grows exponentially until a random "crash" occurs. It uses a configurable RNG seeded for reproducible rounds.</li>
+          <li>The crash distribution here is a simple example (shifted geometric / exponential-like). Use it to explore strategies and expected value — not for betting.</li>
+          <li>Autocashout will automatically cash your virtual bet when the multiplier reaches or exceeds the set value.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Right column: chart + stats -->
+    <aside class="card right" aria-labelledby="chart-title">
+      <h2 id="chart-title" style="margin:0;font-size:15px">Round Chart & Stats</h2>
+      <div class="chart-wrap">
+        <canvas id="chartCanvas" width="800" height="300" role="img" aria-label="Multiplier graph of current round"></canvas>
+      </div>
+
+      <div class="stats" aria-hidden="false">
+        <div class="stat">
+          <h3>Virtual Balance</h3>
+          <p id="statBalance">1000</p>
+        </div>
+        <div class="stat">
+          <h3>Avg Crash (last 50)</h3>
+          <p id="avgCrash">—</p>
+        </div>
+        <div class="stat">
+          <h3>Win Rate (last 50)</h3>
+          <p id="winRate">—</p>
+        </div>
+      </div>
+
+      <div style="margin-top:8px" class="log" id="log" aria-live="polite">
+        <!-- log entries -->
+      </div>
+    </aside>
+
+    <footer class="card">
+      <strong>Note:</strong> This is a pure educational simulator. No real money, no real gambling. Use for classroom demos, probability labs, or experimentation.
+    </footer>
+  </div>
+
+<script>
+/*
+  Multiplier Simulation — Educational Demo
+  - Single-file demo intentionally NOT for real gambling.
+  - Simple RNG with optional seed for reproducibility.
+  - Crash modeling: we use a random value and transform to multiplier.
+    This is just one example of many possible distributions.
+*/
+
+(() => {
+  // UI elements
+  const multiplierEl = document.getElementById('multiplier');
+  const roundStatus = document.getElementById('roundStatus');
+  const startBtn = document.getElementById('startBtn');
+  const cashoutBtn = document.getElementById('cashoutBtn');
+  const betInput = document.getElementById('bet');
+  const autoInput = document.getElementById('auto');
+  const balanceEl = document.getElementById('balance');
+  const statBalanceEl = document.getElementById('statBalance');
+  const roundNumEl = document.getElementById('roundNum');
+  const lastCrashEl = document.getElementById('lastCrash');
+  const avgCrashEl = document.getElementById('avgCrash');
+  const winRateEl = document.getElementById('winRate');
+  const logEl = document.getElementById('log');
+  const resetBtn = document.getElementById('resetBtn');
+  const seedBtn = document.getElementById('seedBtn');
+
+  // Canvas chart
+  const canvas = document.getElementById('chartCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Simulation state
+  let balance = 1000;
+  let round = 0;
+  let running = false;
+  let currentMultiplier = 1.0;
+  let crashMultiplier = null;
+  let multiplierHistory = []; // points for chart
+  let lastCrashes = []; // keep last N crashes
+  const historyLimit = 50;
+  let winsHistory = [];
+
+  // RNG: seedable simple mulberry32 for reproducibility
+  function mulberry32(a) {
+    return function() {
+      var t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+  }
+  let rng = mulberry32(Math.floor(Math.random()*2**31));
+
+  // Seed random generator
+  function randomizeSeed(){
+    const seed = Math.floor(Math.random()*2**31);
+    rng = mulberry32(seed);
+    appendLog(`Seed randomized to ${seed}`);
+  }
+
+  seedBtn.addEventListener('click', randomizeSeed);
+
+  // Simple crash distribution:
+  // We demonstrate a tunable distribution: sample u in (0,1), then multiplier = 1 / (1 - u) truncated.
+  // This gives a heavy-tailed-like distribution for teaching (not a real game's exact model).
+  function sampleCrashMultiplier() {
+    // ensure u not extremely close to 1 to avoid infinite
+    const u = Math.max(1e-6, Math.min(1 - 1e-6, rng()));
+    // transform: using inverse transform of a Pareto-like behavior
+    // multiplier = 1 + k * (u/(1-u))  -> produce heavy tail; k controls typical scale
+    const k = 1.0; // scale parameter (tune to change typical crash)
+    const x = 1 + k * (u / (1 - u));
+    // clamp reasonable max to avoid overflows for display
+    return Math.max(1.0, Math.min(x, 1000));
+  }
+
+  // Update stat displays
+  function refreshUI() {
+    balanceEl.textContent = Math.round(balance);
+    statBalanceEl.textContent = Math.round(balance);
+    roundNumEl.textContent = round;
+    lastCrashEl.textContent = (lastCrashes.length ? lastCrashes[lastCrashes.length-1].toFixed(2) + 'x' : '—');
+    if (lastCrashes.length) {
+      const arr = lastCrashes.slice(-historyLimit);
+      const avg = arr.reduce((a,b)=>a+b,0)/arr.length;
+      avgCrashEl.textContent = avg.toFixed(2) + 'x';
+      const wins = winsHistory.slice(-historyLimit).filter(x=>x).length;
+      winRateEl.textContent = ((wins / winsHistory.slice(-historyLimit).length) * 100 || 0).toFixed(1) + '%';
+    } else {
+      avgCrashEl.textContent = '—';
+      winRateEl.textContent = '—';
+    }
+  }
+
+  function appendLog(text) {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    const t = new Date().toLocaleTimeString();
+    div.innerText = `[${t}] ${text}`;
+    logEl.prepend(div);
+    // keep log manageable
+    while (logEl.children.length > 200) logEl.removeChild(logEl.lastChild);
+  }
+
+  // Chart rendering: simple line plot of multiplierHistory
+  function drawChart() {
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+
+    // background grid
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.fillRect(0,0,w,h);
+
+    // compute bounds
+    const points = multiplierHistory.slice();
+    if (!points.length) {
+      // draw placeholder text
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.font = '14px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Multiplier curve will appear here during a round', w/2, h/2);
+      return;
+    }
+    const maxM = Math.max(...points);
+    const minM = 1;
+    // margins
+    const margin = 30;
+    const plotW = w - margin*2;
+    const plotH = h - margin*2;
+
+    // y-scale (log scale useful for heavy tail)
+    function yOf(m) {
+      // log scale mapping between minM and maxM
+      const logMin = Math.log(minM);
+      const logMax = Math.log(Math.max(maxM, 1.001));
+      const ratio = (Math.log(m) - logMin) / (logMax - logMin || 1);
+      return margin + (1 - ratio) * plotH;
+    }
+    function xOf(i) {
+      return margin + (i / Math.max(1, points.length-1)) * plotW;
     }
 
-    startBtn.addEventListener('click', startSimulation);
-  </script>
+    // draw axes lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(margin, margin);
+    ctx.lineTo(margin, margin + plotH);
+    ctx.lineTo(margin + plotW, margin + plotH);
+    ctx.stroke();
+
+    // draw horizontal grid labels for a few multipliers
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    const gridTicks = [1, 2, 5, 10, 50, 100].filter(t => t <= maxM*1.05);
+    gridTicks.forEach(t => {
+      const y = yOf(t);
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      ctx.moveTo(margin, y);
+      ctx.lineTo(margin + plotW, y);
+      ctx.stroke();
+      ctx.fillText(t + 'x', margin-8, y+4);
+    });
+
+    // draw line
+    ctx.beginPath();
+    for (let i=0;i<points.length;i++){
+      const x = xOf(i);
+      const y = yOf(points[i]);
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = 'rgba(6,182,212,0.95)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // current multiplier marker
+    const lastX = xOf(points.length-1);
+    const lastY = yOf(points[points.length-1]);
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(6,182,212,0.95)';
+    ctx.arc(lastX, lastY, 4, 0, Math.PI*2);
+    ctx.fill();
+
+    // draw crash label if ended
+    if (!running && crashMultiplier !== null) {
+      ctx.fillStyle = 'rgba(255,100,100,0.95)';
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Crash at ' + crashMultiplier.toFixed(2) + 'x', margin + 8, margin + 16);
+    }
+  }
+
+  // Run a round:
+  // - sample crash multiplier
+  // - simulate growth frames until crash
+  // - allow manual cashout which stops the round and pays out at current multiplier
+  let frameTimer = null;
+  function startRound() {
+    if (running) return;
+    const bet = Math.max(1, Math.floor(Number(betInput.value) || 0));
+    if (bet <= 0) { alert('Please set a positive bet.'); return; }
+    if (bet > balance) { alert('Bet exceeds virtual balance.'); return; }
+
+    round++;
+    running = true;
+    currentMultiplier = 1.0;
+    multiplierHistory = [1.0];
+    crashMultiplier = sampleCrashMultiplier(); // predetermined crash
+    appendLog(`Round ${round} started — bet ${bet}, crash will be at ${crashMultiplier.toFixed(2)}x (hidden)`);
+    roundStatus.textContent = 'Round running...';
+    startBtn.disabled = true;
+    cashoutBtn.disabled = false;
+    // reserve the bet (subtract immediately to show risk)
+    balance -= bet;
+    refreshUI();
+    drawChart();
+
+    const startTime = performance.now();
+    const speed = 1.02 + rng()*0.03; // growth speed factor per frame (tweakable)
+    const growthFunc = t => Math.exp(0.35 * t); // base growth curve; we will scale by speed
+    let lastTime = startTime;
+
+    function step(now) {
+      const dt = (now - lastTime) / 1000; // seconds
+      lastTime = now;
+      // increment multiplier using exponential growth scaled by speed and dt
+      // simple ODE style: m' = alpha * m -> m = exp(alpha * time)
+      const elapsed = (now - startTime) / 1000;
+      currentMultiplier = growthFunc(elapsed * speed);
+      multiplierHistory.push(currentMultiplier);
+      // if exceed crash, end round as crashed
+      if (currentMultiplier >= crashMultiplier) {
+        // crash: user loses reserved bet
+        running = false;
+        frameTimer = null;
+        roundStatus.textContent = 'Crashed';
+        multiplierEl.textContent = crashMultiplier.toFixed(2) + 'x';
+        appendLog(`Round ${round} crashed at ${crashMultiplier.toFixed(2)}x — lost ${bet}`);
+        // record stats
+        lastCrashes.push(crashMultiplier);
+        winsHistory.push(false);
+        if (lastCrashes.length > historyLimit) lastCrashes.shift();
+        if (winsHistory.length > historyLimit) winsHistory.shift();
+        // reset UI
+        startBtn.disabled = false;
+        cashoutBtn.disabled = true;
+        crashMultiplier = crashMultiplier; // already set
+        refreshUI();
+        drawChart();
+        return;
+      }
+
+      // update multiplier label in real-time
+      multiplierEl.textContent = currentMultiplier.toFixed(2) + 'x';
+
+      // auto cashout logic:
+      const autoVal = Math.max(0.01, Number(autoInput.value) || 0);
+      if (autoVal > 0 && currentMultiplier >= autoVal) {
+        // apply cashout
+        running = false;
+        frameTimer = null;
+        const payout = bet * Math.min(currentMultiplier, crashMultiplier); // if we cashout at or before crash
+        balance += payout; // return payout to balance (bet already subtracted)
+        multiplierEl.textContent = currentMultiplier.toFixed(2) + 'x';
+        roundStatus.textContent = 'Cashed out';
+        appendLog(`Round ${round} cashed out at ${currentMultiplier.toFixed(2)}x — paid ${payout.toFixed(2)}`);
+        lastCrashes.push(crashMultiplier);
+        winsHistory.push(true);
+        if (lastCrashes.length > historyLimit) lastCrashes.shift();
+        if (winsHistory.length > historyLimit) winsHistory.shift();
+        startBtn.disabled = false;
+        cashoutBtn.disabled = true;
+        refreshUI();
+        drawChart();
+        return;
+      }
+
+      // schedule next frame
+      drawChart();
+      frameTimer = requestAnimationFrame(step);
+    }
+
+    frameTimer = requestAnimationFrame(step);
+  }
+
+  function manualCashout() {
+    if (!running) return;
+    const bet = Math.max(1, Math.floor(Number(betInput.value) || 0));
+    // cashout at current multiplier, but only if currentMultiplier < crash (we're safe if not crashed)
+    if (currentMultiplier >= crashMultiplier) {
+      // too late
+      appendLog(`Attempted to cash out but round already crashed at ${crashMultiplier.toFixed(2)}x`);
+      return;
+    }
+    running = false;
+    if (frameTimer) cancelAnimationFrame(frameTimer);
+    frameTimer = null;
+    const payout = bet * currentMultiplier;
+    balance += payout;
+    multiplierEl.textContent = currentMultiplier.toFixed(2) + 'x';
+    roundStatus.textContent = 'Cashed out (manual)';
+    appendLog(`Round ${round} cashed out manually at ${currentMultiplier.toFixed(2)}x — paid ${payout.toFixed(2)}`);
+    lastCrashes.push(crashMultiplier);
+    winsHistory.push(true);
+    if (lastCrashes.length > historyLimit) lastCrashes.shift();
+    if (winsHistory.length > historyLimit) winsHistory.shift();
+    startBtn.disabled = false;
+    cashoutBtn.disabled = true;
+    refreshUI();
+    drawChart();
+  }
+
+  function resetAll() {
+    if (running) {
+      if (!confirm('A round is running. Reset will stop it. Continue?')) return;
+      if (frameTimer) cancelAnimationFrame(frameTimer);
+      running = false;
+      frameTimer = null;
+    }
+    balance = 1000;
+    round = 0;
+    currentMultiplier = 1.0;
+    crashMultiplier = null;
+    multiplierHistory = [];
+    lastCrashes = [];
+    winsHistory = [];
+    roundStatus.textContent = 'Reset';
+    multiplierEl.textContent = '— x';
+    startBtn.disabled = false;
+    cashoutBtn.disabled = true;
+    appendLog('Simulation reset');
+    refreshUI();
+    drawChart();
+  }
+
+  // wire events
+  startBtn.addEventListener('click', startRound);
+  cashoutBtn.addEventListener('click', manualCashout);
+  resetBtn.addEventListener('click', resetAll);
+
+  // make canvas responsive
+  function resizeCanvas() {
+    // set a high resolution canvas while preserving CSS size
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(600, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(240, Math.floor(rect.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawChart();
+  }
+  window.addEventListener('resize', () => { resizeCanvas(); });
+  resizeCanvas();
+
+  // initial UI
+  refreshUI();
+  appendLog('Simulator ready — virtual balance: ' + balance);
+
+  // For educational transparency, attach some helpers to window (developer mode)
+  window.simulationHelpers = {
+    sampleCrashMultiplier,
+    rngSeeded: () => rng,
+    getState: () => ({balance, round, running, currentMultiplier, crashMultiplier, lastCrashes}),
+  };
+})();
+</script>
 </body>
 </html>
-
-
